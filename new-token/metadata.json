@@ -1,6 +1,6 @@
 {
   "name": "Dragon Token",
-  "symbol": "Dragon",
+  "symbol": "DRAGON",
   "description": "Example token for the solana bootcamp",
   "image": "https:raw.githubusercontent.com/freddyal0x01/solana-dev-bootcamp/main/new-token/dragon.png"
 }
