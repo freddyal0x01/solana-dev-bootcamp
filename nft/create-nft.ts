@@ -52,7 +52,7 @@ const mint = generateSigner(umi);
 const transaction = await createNft(umi, {
   mint,
   name: "My NFT",
-  uri: "https://...",
+  uri: "https://raw.githubusercontent.com/freddyal0x01/solana-dev-bootcamp/refs/heads/main/nft/sample-nft.json",
   sellerFeeBasisPoints: percentAmount(0),
   collection: {
     key: collectionAddress,
