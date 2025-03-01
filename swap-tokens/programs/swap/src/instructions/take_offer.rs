@@ -58,7 +58,7 @@ pub struct TakeOffer<'info> {
         seeds = [b"offer", maker.key().as_ref(), offer.id.to_le_bytes().as_ref()],
         bump = offer.bump
     )]
-    offer: Account<'info, Offer>,
+    offer: Box<Account<'info, Offer>>,
 
     #[account(
         mut,
@@ -66,7 +66,7 @@ pub struct TakeOffer<'info> {
         associated_token::authority = offer,
         associated_token::token_program = token_program,
     )]
-    vault: InterfaceAccount<'info, TokenAccount>,
+    vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, TokenInterface>,
