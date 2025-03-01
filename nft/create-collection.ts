@@ -44,9 +44,9 @@ const collectionMint = generateSigner(umi);
 
 const transaction = await createNft(umi, {
   mint: collectionMint,
-  name: "Majestic Collection",
-  symbol: "MC",
-  uri: "https://raw.githubusercontent.com/solana-developers/professional-education/refs/heads/main/labs/sample-nft-collection-offchain-data.json",
+  name: "Majestic Dragon Collection",
+  symbol: "MDC",
+  uri: "https://raw.githubusercontent.com/freddyal0x01/solana-dev-bootcamp/refs/heads/main/nft/collection.json",
   sellerFeeBasisPoints: percentAmount(0),
   isCollection: true,
 });
