@@ -1,25 +1,30 @@
-import { BN, Program, setProvider, web3 } from "@coral-xyz/anchor";
-import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-import { Keypair, PublicKey } from "@solana/web3.js";
-
-import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
+// No imports needed: web3, anchor, pg and more are globally available
+import * as anchor from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { BankrunProvider } from "anchor-bankrun";
-import { Vesting } from "anchor/target/types/vesting";
+
 import {
   BanksClient,
   Clock,
   ProgramTestContext,
   startAnchor,
 } from "solana-bankrun";
+
+import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { createMint, mintTo } from "spl-token-bankrun";
+
+import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import IDL from "../target/idl/vesting.json";
+import { Vesting } from "../target/types/vesting";
 
 describe("Vesting Smart Contract Tests", () => {
   const companyName = "Degens";
-
   let beneficiary: Keypair;
-  let context: ProgramTestContext;
+  let vestingAccountKey: PublicKey;
+  let treasuryTokenAccount: PublicKey;
+  let employeeAccount: PublicKey;
   let provider: BankrunProvider;
   let program: Program<Vesting>;
   let banksClient: BanksClient;
@@ -27,20 +32,15 @@ describe("Vesting Smart Contract Tests", () => {
   let mint: PublicKey;
   let beneficiaryProvider: BankrunProvider;
   let program2: Program<Vesting>;
-  let vestingAccountKey: PublicKey;
-  let treasuryTokenAccount: PublicKey;
-  let employeeAccount: PublicKey;
+  let context: ProgramTestContext;
 
   beforeAll(async () => {
-    beneficiary = new web3.Keypair();
+    beneficiary = new anchor.web3.Keypair();
+
+    // set up bankrun
     context = await startAnchor(
       "",
-      [
-        {
-          name: "vesting",
-          programId: new PublicKey(IDL.address),
-        },
-      ],
+      [{ name: "vesting", programId: new PublicKey(IDL.address) }],
       [
         {
           address: beneficiary.publicKey,
@@ -53,10 +53,9 @@ describe("Vesting Smart Contract Tests", () => {
         },
       ],
     );
-
     provider = new BankrunProvider(context);
 
-    setProvider(provider);
+    anchor.setProvider(provider);
 
     program = new Program<Vesting>(IDL as Vesting, provider);
 
@@ -64,14 +63,17 @@ describe("Vesting Smart Contract Tests", () => {
 
     employer = provider.wallet.payer;
 
-    // @ts-expect-error - Type error in spl-token-bankrun dependency
+    // Create a new mint
+    // @ts-ignore
     mint = await createMint(banksClient, employer, employer.publicKey, null, 2);
 
+    // Generate a new keypair for the beneficiary
     beneficiaryProvider = new BankrunProvider(context);
     beneficiaryProvider.wallet = new NodeWallet(beneficiary);
 
     program2 = new Program<Vesting>(IDL as Vesting, beneficiaryProvider);
 
+    // Derive PDAs
     [vestingAccountKey] = PublicKey.findProgramAddressSync(
       [Buffer.from(companyName)],
       program.programId,
@@ -92,7 +94,7 @@ describe("Vesting Smart Contract Tests", () => {
     );
   });
 
-  it("should create a new vesting account", async () => {
+  it("should create a vesting account", async () => {
     const tx = await program.methods
       .createVestingAccount(companyName)
       .accounts({
@@ -106,14 +108,18 @@ describe("Vesting Smart Contract Tests", () => {
       vestingAccountKey,
       "confirmed",
     );
-    console.log("Vesting Account Data:", vestingAccountData, null, 2);
-    console.log(`Creating Vesting Account: ${tx}`);
+    console.log(
+      "Vesting Account Data:",
+      JSON.stringify(vestingAccountData, null, 2),
+    );
+
+    console.log("Create Vesting Account Transaction Signature:", tx);
   });
 
   it("should fund the treasury token account", async () => {
-    const amount = 10_000 * 10_000 ** 9;
+    const amount = 10_000 * 10 ** 9;
     const mintTx = await mintTo(
-      // @ts-expect-error - Type error in spl-token-bankrun dependency
+      // @ts-ignores
       banksClient,
       employer,
       mint,
@@ -121,10 +127,11 @@ describe("Vesting Smart Contract Tests", () => {
       employer,
       amount,
     );
-    console.log(`Mint Treasury Token Account: ${mintTx}`);
+
+    console.log("Mint to Treasury Transaction Signature:", mintTx);
   });
 
-  it("should create employee vesting account", async () => {
+  it("should create an employee vesting account", async () => {
     const tx2 = await program.methods
       .createEmployeeAccount(new BN(0), new BN(100), new BN(100), new BN(0))
       .accounts({
@@ -133,11 +140,11 @@ describe("Vesting Smart Contract Tests", () => {
       })
       .rpc({ commitment: "confirmed", skipPreflight: true });
 
-    console.log(`Create Employee Account Tx: ${tx2}`);
-    console.log(`Employee Account: ${employeeAccount.toBase58()}`);
+    console.log("Create Employee Account Transaction Signature:", tx2);
+    console.log("Employee account", employeeAccount.toBase58());
   });
 
-  it("should claim the employee's vested tokens", async () => {
+  it("should claim tokens", async () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const currentClock = await banksClient.getClock();
@@ -147,10 +154,11 @@ describe("Vesting Smart Contract Tests", () => {
         currentClock.epochStartTimestamp,
         currentClock.epoch,
         currentClock.leaderScheduleEpoch,
-        // @ts-ignore
         1000n,
       ),
     );
+
+    console.log("Employee account", employeeAccount.toBase58());
 
     const tx3 = await program2.methods
       .claimTokens(companyName)
@@ -159,6 +167,6 @@ describe("Vesting Smart Contract Tests", () => {
       })
       .rpc({ commitment: "confirmed" });
 
-    console.log(`Claim Tokens Tx: ${tx3}`);
+    console.log("Claim Tokens transaction signature", tx3);
   });
 });

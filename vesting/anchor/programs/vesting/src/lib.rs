@@ -1,12 +1,11 @@
 #![allow(clippy::result_large_err)]
-
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 
-declare_id!("coUnmi3oBUtwtd9fjeAvSsJssXh5A5xyPbhpewyzRVF");
+declare_id!("82MDeEbBNgB5LFsH5gLjSaiDAm8Pd1wotzWJkQfWfT6T");
 
 #[program]
 pub mod vesting {
@@ -209,7 +208,7 @@ pub struct ClaimToken<'info> {
 }
 
 #[account]
-#[derive(InitSpace)]
+#[derive(InitSpace, Debug)]
 pub struct VestingAccount {
     pub owner: Pubkey,
     pub mint: Pubkey,
@@ -221,7 +220,7 @@ pub struct VestingAccount {
 }
 
 #[account]
-#[derive(InitSpace)]
+#[derive(InitSpace, Debug)]
 pub struct EmployeeAccount {
     pub beneficiary: Pubkey,
     pub start_time: i64,
