@@ -37,3 +37,5 @@ next-env.d.ts
 tmp
 
 *target/
+*.DS_Store
+*test-ledger/
