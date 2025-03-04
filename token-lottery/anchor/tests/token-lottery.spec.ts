@@ -1,6 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import * as sb from "@switchboard-xyz/on-demand";
+import SwitchboardIDL from "../switchboard.json";
 import { TokenLottery } from "../target/types/token_lottery";
 
 describe("Lottery", () => {
@@ -9,6 +11,34 @@ describe("Lottery", () => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace.TokenLottery as Program<TokenLottery>;
+
+  const switchboardProgram = new anchor.Program(
+    SwitchboardIDL as anchor.Idl,
+    provider,
+  );
+  const rngKp = anchor.web3.Keypair.generate();
+
+  // beforeAll(async () => {
+  //   const switchboardIDL = (await anchor.Program.fetchIdl(
+  //     {
+  //       connection: new anchor.web3.Connection(
+  //         "https://api.mainnet-beta.solana.com",
+  //       ),
+  //     },
+  //   )) as anchor.Idl;
+
+  //   fs.writeFile(
+  //     "switchboard.json",
+  //     JSON.stringify(switchboardIDL),
+  //     function (err) {
+  //       if (err) {
+  //         console.log(err);
+  //       }
+  //     },
+  //   );
+
+  //   switchboardProgram = new anchor.Program(switchboardIDL, provider);
+  // });
 
   async function buyTicket() {
     const buyTicketIx = await program.methods
@@ -94,5 +124,43 @@ describe("Lottery", () => {
     console.log("Init Lottery Signature: ", initLotterySignature);
 
     await buyTicket();
+    await buyTicket();
+    await buyTicket();
+    await buyTicket();
+    await buyTicket();
+    await buyTicket();
+    await buyTicket();
+
+    const queue = new anchor.web3.PublicKey(
+      "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w",
+    );
+
+    const queueAccount = new sb.Queue(switchboardProgram, queue);
+
+    try {
+      await queueAccount.loadData();
+    } catch (err) {
+      console.log("Error", err);
+      process.exit(1);
+    }
+
+    const [randomness, createRandomnessIx] = await sb.Randomness.create(
+      switchboardProgram,
+      rngKp,
+      queue,
+    );
+
+    const createRandomnessTx = await sb.asV0Tx({
+      connection: provider.connection,
+      ixs: [createRandomnessIx],
+      payer: wallet.publicKey,
+      signers: [wallet.payer, rngKp],
+    });
+
+    const createRandomnessSignature = await provider.connection.sendTransaction(
+      createRandomnessTx,
+    );
+
+    console.log("Create Randomness Signature: ", createRandomnessSignature);
   });
 });

@@ -462,7 +462,7 @@ pub struct CommitRandomness<'info> {
     )]
     pub token_lottery: Account<'info, TokenLottery>,
 
-    // CHECK: This account is checked by the Switchboard smart contract
+    /// CHECK: This account is checked by the Switchboard smart contract
     pub randomness_account: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
